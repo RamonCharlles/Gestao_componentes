@@ -3,13 +3,13 @@ import pandas as pd
 import datetime
 import os
 
-# Diretórios
+# Diretórios para dados e imagens
 os.makedirs("data", exist_ok=True)
 os.makedirs("images/uploads", exist_ok=True)
 
 CSV_PATH = "data/registros.csv"
 
-# Criação do CSV se necessário
+# Criar arquivo CSV vazio se não existir
 if not os.path.exists(CSV_PATH):
     df = pd.DataFrame(columns=[
         "Responsável", "Matrícula", "PN", "Descrição", "TAG",
@@ -22,17 +22,14 @@ if not os.path.exists(CSV_PATH):
 else:
     df = pd.read_csv(CSV_PATH)
 
-# Função para salvar dados
 def salvar_dados(df):
     df.to_csv(CSV_PATH, index=False)
 
-# Página
 st.set_page_config("Gestão de Componentes Reformáveis", layout="wide")
 st.title("🛠 Gestão de Componentes Reformáveis")
 
 menu = st.sidebar.radio("Perfil", ["Técnico de Campo", "Supervisor", "Administrador"])
 
-# Técnico de Campo
 if menu == "Técnico de Campo":
     st.subheader("📥 Cadastro de Componente Retirado")
 
@@ -87,7 +84,6 @@ if menu == "Técnico de Campo":
         st.code(resumo)
         st.info("Copie manualmente para compartilhar.")
 
-# Supervisor
 elif menu == "Supervisor":
     st.subheader("🔐 Acesso do Supervisor")
     user  = st.text_input("Usuário")
@@ -96,7 +92,6 @@ elif menu == "Supervisor":
     if user in st.secrets.supervisores and st.secrets.supervisores[user] == senha:
         st.success("Acesso liberado.")
 
-        # Itens pendentes para tratar (um por vez)
         pendentes = df[df["Status"] == "Aguardando Envio"]
         if not pendentes.empty:
             st.markdown("### ✏️ Selecionar processo pendente")
@@ -140,7 +135,6 @@ elif menu == "Supervisor":
         else:
             st.info("Nenhum item pendente para envio.")
 
-        # Itens aguardando retorno para dar baixa
         st.markdown("### 📦 Atualizar para 'Componente Entregue'")
         retorno = df[df["Status"] == "Aguardando Retorno"]
         if not retorno.empty:
@@ -150,17 +144,20 @@ elif menu == "Supervisor":
                 format_func=lambda i: f"{df.at[i,'PN']} — {df.at[i,'TAG']}"
             )
             with st.form("form_entrega"):
-                data_entrega = st.date_input("Data de Entrega", datetime.date.today())
+                data_entrega = st.date_input("Data de Recebimento (Obrigatório)")
                 submit_entrega = st.form_submit_button("Confirmar Entrega")
+
                 if submit_entrega:
-                    df.at[idx2, "Status"] = "Componente Entregue"
-                    df.at[idx2, "Data_Entrega"] = str(data_entrega)
-                    salvar_dados(df)
-                    st.success("✅ Item dado como entregue.")
+                    if not data_entrega:
+                        st.error("Por favor, informe a data de recebimento.")
+                    else:
+                        df.at[idx2, "Status"] = "Componente Entregue"
+                        df.at[idx2, "Data_Entrega"] = str(data_entrega)
+                        salvar_dados(df)
+                        st.success("✅ Item dado como entregue.")
         else:
             st.info("Nenhum item aguardando retorno.")
 
-        # Itens tratados: status Componente Entregue ou Cancelado (exclusão permitida)
         st.markdown("### 🗂 Itens entregues ou cancelados (podem ser excluídos)")
         tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
         if not tratados.empty:
@@ -182,7 +179,6 @@ elif menu == "Supervisor":
     else:
         st.warning("Usuário ou senha incorretos.")
 
-# Administrador
 elif menu == "Administrador":
     st.subheader("🔐 Acesso do Administrador")
     user  = st.text_input("Usuário")
