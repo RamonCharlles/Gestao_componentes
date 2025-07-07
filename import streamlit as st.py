@@ -150,33 +150,19 @@ elif menu == "Supervisor":
                 submit_entrega = st.form_submit_button("Confirmar Entrega")
 
                 if submit_entrega:
-                    if not data_entrega:
-                        st.error("Por favor, informe a data de recebimento.")
-                    else:
-                        df.at[idx2, "Status"] = "Componente Entregue"
-                        df.at[idx2, "Data_Entrega"] = str(data_entrega)
-                        salvar_dados(df)
-                        st.success("✅ Item dado como entregue.")
+                    df.at[idx2, "Status"] = "Componente Entregue"
+                    df.at[idx2, "Data_Entrega"] = str(data_entrega)
+                    salvar_dados(df)
+                    st.success("✅ Item dado como entregue.")
         else:
             st.info("Nenhum item aguardando retorno.")
 
-        st.markdown("### 🗂 Itens entregues ou cancelados (podem ser excluídos)")
+        st.markdown("### 🗂 Itens entregues ou cancelados")
         tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
         if not tratados.empty:
             st.dataframe(tratados.reset_index(drop=True))
-
-            excluir_id = st.number_input("Digite o índice da linha para excluir (conforme tabela acima)", min_value=0, step=1)
-
-            if st.button("Excluir item selecionado"):
-                if 0 <= excluir_id < len(tratados):
-                    idx_excluir = tratados.index[excluir_id]
-                    df = df.drop(idx_excluir).reset_index(drop=True)
-                    salvar_dados(df)
-                    st.success("✅ Item excluído com sucesso!")
-                else:
-                    st.error("Índice inválido.")
         else:
-            st.info("Nenhum item entregue ou cancelado para excluir.")
+            st.info("Nenhum item entregue ou cancelado.")
 
     else:
         st.warning("Usuário ou senha incorretos.")
@@ -204,7 +190,25 @@ elif menu == "Administrador":
         st.markdown("#### ✅ Componentes Entregues")
         st.dataframe(entregue)
 
+        st.markdown("### 🗑️ Itens entregues ou cancelados (pode excluir)")
+        tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
+        if not tratados.empty:
+            st.dataframe(tratados.reset_index(drop=True))
+
+            excluir_id = st.number_input("Digite o índice da linha para excluir (conforme tabela acima)", min_value=0, step=1)
+
+            if st.button("Excluir item selecionado"):
+                if 0 <= excluir_id < len(tratados):
+                    idx_excluir = tratados.index[excluir_id]
+                    df = df.drop(idx_excluir).reset_index(drop=True)
+                    salvar_dados(df)
+                    st.success("✅ Item excluído com sucesso!")
+                else:
+                    st.error("Índice inválido.")
+        else:
+            st.info("Nenhum item disponível para exclusão.")
+
         st.download_button("📥 Baixar todos os dados (CSV)", df.to_csv(index=False), "componentes.csv", "text/csv")
+
     else:
         st.warning("Usuário ou senha incorretos.")
-
