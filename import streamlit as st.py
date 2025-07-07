@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import datetime
@@ -111,10 +110,8 @@ elif menu == "Supervisor":
             )
 
             item = df.loc[idx]
-            st.markdown(f"**Descrição:** {item['Descrição']}  
-**PN:** {item['PN']}  
-**TAG:** {item['TAG']}  
-**Falha:** {item['Falha']}")
+            st.markdown(f"""**Descrição:** {item['Descrição']}  \n**PN:** {item['PN']}  \n**TAG:** {item['TAG']}  \n**Falha:** {item['Falha']}""")
+
             if pd.notna(item["Imagem"]) and os.path.exists(item["Imagem"]):
                 st.image(item["Imagem"], width=400, caption=f'{item["PN"]} - {item["Descrição"]}')
                 with open(item["Imagem"], "rb") as f:
@@ -138,7 +135,6 @@ elif menu == "Supervisor":
                     df.at[idx, "Status"] = "Aguardando Retorno"
                     salvar_dados(df)
                     st.success("✅ Processo enviado. Status atualizado para 'Aguardando Retorno'.")
-
         else:
             st.info("Nenhum item pendente para envio.")
 
