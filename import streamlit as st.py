@@ -39,12 +39,12 @@ if menu == "Técnico de Campo":
         matricula     = st.text_input("Matrícula")
         pn            = st.text_input("PN do Componente")
         descricao     = st.text_input("Descrição do Componente")
-        tag           = st.text_input("TAG do Equipamento")
+        tag           = st.text_input("TAG do Equipamento que saiu")
         horimetro     = st.number_input("Horímetro", 0)
         falha         = st.text_area("Falha apresentada")
-        escopo        = st.text_area("Escopo do serviço")
+        escopo        = st.text_area("Escopo do serviço detalhado")
         imagem        = st.file_uploader("Imagem (opcional)", type=["jpg", "png", "jpeg"])
-        os_retirada   = st.text_input("OS de Retirada")
+        os_retirada   = st.text_input("Nª da OS de Retirada")
         data_retirada = st.date_input("Data da Retirada", datetime.date.today())
         submit        = st.form_submit_button("Salvar")
 
@@ -104,9 +104,9 @@ elif menu == "Supervisor":
             item = df.loc[idx]
             st.markdown(f"""**Descrição:** {item['Descrição']}  \\
 **PN:** {item['PN']}  \\
-**TAG:** {item['TAG']}  \\
+**TAG:** {item['TAG do equipamento']}  \\
 **Falha:** {item['Falha']}  \\
-**OS de Retirada:** {item['OS_Retirada']}  \\
+**OS de Retirada:** {item['Nª da OS_Retirada']}  \\
 **Escopo do Serviço:** {item['Escopo']}""")
 
             if pd.notna(item["Imagem"]) and os.path.exists(item["Imagem"]):
@@ -122,7 +122,7 @@ elif menu == "Supervisor":
             with st.form("form_supervisor"):
                 rs         = st.text_input("Nº da RS")
                 nota       = st.text_input("Nota Fiscal / Passe")
-                data_envio = st.date_input("Data de Envio", datetime.date.today())
+                data_envio = st.date_input("Data de Envio para o almoxarifado", datetime.date.today())
                 submit_envio = st.form_submit_button("Confirmar envio")
 
                 if submit_envio:
