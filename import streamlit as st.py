@@ -3,13 +3,13 @@ import pandas as pd
 import datetime
 import os
 
-# ─── Diretórios ──────────────────────────────────────────────────────────────
+# Diretórios
 os.makedirs("data", exist_ok=True)
 os.makedirs("images/uploads", exist_ok=True)
 
 CSV_PATH = "data/registros.csv"
 
-# ─── Criação do CSV se necessário ────────────────────────────────────────────
+# Criação do CSV se necessário
 if not os.path.exists(CSV_PATH):
     df = pd.DataFrame(columns=[
         "Responsável", "Matrícula", "PN", "Descrição", "TAG",
@@ -22,18 +22,17 @@ if not os.path.exists(CSV_PATH):
 else:
     df = pd.read_csv(CSV_PATH)
 
-# ─── Página ─────────────────────────────────────────────────────────────────
+# Função para salvar dados
+def salvar_dados(df):
+    df.to_csv(CSV_PATH, index=False)
+
+# Página
 st.set_page_config("Gestão de Componentes Reformáveis", layout="wide")
 st.title("🛠 Gestão de Componentes Reformáveis")
 
 menu = st.sidebar.radio("Perfil", ["Técnico de Campo", "Supervisor", "Administrador"])
 
-def salvar_dados(df):
-    df.to_csv(CSV_PATH, index=False)
-
-# ==============================
-# TÉCNICO DE CAMPO
-# ==============================
+# Técnico de Campo
 if menu == "Técnico de Campo":
     st.subheader("📥 Cadastro de Componente Retirado")
 
@@ -86,12 +85,9 @@ if menu == "Técnico de Campo":
     if resumo:
         st.markdown("### 📋 Resumo do Cadastro:")
         st.code(resumo)
-        st.button("📋 Copiar resumo")
-        st.info("Copie manualmente com Ctrl+C para compartilhar.")
+        st.info("Copie manualmente para compartilhar.")
 
-# ==============================
-# SUPERVISOR
-# ==============================
+# Supervisor
 elif menu == "Supervisor":
     st.subheader("🔐 Acesso do Supervisor")
     user  = st.text_input("Usuário")
@@ -100,6 +96,7 @@ elif menu == "Supervisor":
     if user in st.secrets.supervisores and st.secrets.supervisores[user] == senha:
         st.success("Acesso liberado.")
 
+        # Itens pendentes para tratar (um por vez)
         pendentes = df[df["Status"] == "Aguardando Envio"]
         if not pendentes.empty:
             st.markdown("### ✏️ Selecionar processo pendente")
@@ -110,7 +107,12 @@ elif menu == "Supervisor":
             )
 
             item = df.loc[idx]
-            st.markdown(f"""**Descrição:** {item['Descrição']}  \n**PN:** {item['PN']}  \n**TAG:** {item['TAG']}  \n**Falha:** {item['Falha']}""")
+            st.markdown(f"""**Descrição:** {item['Descrição']}  \\
+**PN:** {item['PN']}  \\
+**TAG:** {item['TAG']}  \\
+**Falha:** {item['Falha']}  \\
+**OS de Retirada:** {item['OS_Retirada']}  \\
+**Escopo do Serviço:** {item['Escopo']}""")
 
             if pd.notna(item["Imagem"]) and os.path.exists(item["Imagem"]):
                 st.image(item["Imagem"], width=400, caption=f'{item["PN"]} - {item["Descrição"]}')
@@ -138,6 +140,7 @@ elif menu == "Supervisor":
         else:
             st.info("Nenhum item pendente para envio.")
 
+        # Itens aguardando retorno para dar baixa
         st.markdown("### 📦 Atualizar para 'Componente Entregue'")
         retorno = df[df["Status"] == "Aguardando Retorno"]
         if not retorno.empty:
@@ -156,12 +159,30 @@ elif menu == "Supervisor":
                     st.success("✅ Item dado como entregue.")
         else:
             st.info("Nenhum item aguardando retorno.")
+
+        # Itens tratados: status Componente Entregue ou Cancelado (exclusão permitida)
+        st.markdown("### 🗂 Itens entregues ou cancelados (podem ser excluídos)")
+        tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
+        if not tratados.empty:
+            st.dataframe(tratados.reset_index(drop=True))
+
+            excluir_id = st.number_input("Digite o índice da linha para excluir (conforme tabela acima)", min_value=0, step=1)
+
+            if st.button("Excluir item selecionado"):
+                if 0 <= excluir_id < len(tratados):
+                    idx_excluir = tratados.index[excluir_id]
+                    df = df.drop(idx_excluir).reset_index(drop=True)
+                    salvar_dados(df)
+                    st.success("✅ Item excluído com sucesso!")
+                else:
+                    st.error("Índice inválido.")
+        else:
+            st.info("Nenhum item entregue ou cancelado para excluir.")
+
     else:
         st.warning("Usuário ou senha incorretos.")
 
-# ==============================
-# ADMINISTRADOR
-# ==============================
+# Administrador
 elif menu == "Administrador":
     st.subheader("🔐 Acesso do Administrador")
     user  = st.text_input("Usuário")
@@ -187,4 +208,3 @@ elif menu == "Administrador":
         st.download_button("📥 Baixar todos os dados (CSV)", df.to_csv(index=False), "componentes.csv", "text/csv")
     else:
         st.warning("Usuário ou senha incorretos.")
-
