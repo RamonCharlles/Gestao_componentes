@@ -36,7 +36,7 @@ def calcular_tempo_processo(row):
         return "—"
 
 st.set_page_config("Gestão de Componentes Reformáveis", layout="wide")
-st.title("🛠 Gestão de Componentes Reformáveis")
+st.title("🛠 Gestão de Componentes Reformáveis HME")
 
 menu = st.sidebar.radio("Perfil", ["Técnico de Campo", "Supervisor", "Administrador"])
 
