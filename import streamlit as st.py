@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import datetime
@@ -22,11 +23,11 @@ if not os.path.exists(CSV_PATH):
 else:
     df = pd.read_csv(CSV_PATH)
 
-# ─── Configuração de página ──────────────────────────────────────────────────
+# ─── Página ─────────────────────────────────────────────────────────────────
 st.set_page_config("Gestão de Componentes Reformáveis", layout="wide")
 st.title("🛠 Gestão de Componentes Reformáveis")
 
-menu = st.sidebar.radio("Escolha o Perfil", ["Técnico de Campo", "Supervisor", "Administrador"])
+menu = st.sidebar.radio("Perfil", ["Técnico de Campo", "Supervisor", "Administrador"])
 
 def salvar_dados(df):
     df.to_csv(CSV_PATH, index=False)
@@ -37,7 +38,7 @@ def salvar_dados(df):
 if menu == "Técnico de Campo":
     st.subheader("📥 Cadastro de Componente Retirado")
 
-    resumo = None  # usado fora do form
+    resumo = None
     with st.form("form_tecnico"):
         responsavel   = st.text_input("Responsável")
         matricula     = st.text_input("Matrícula")
@@ -47,7 +48,7 @@ if menu == "Técnico de Campo":
         horimetro     = st.number_input("Horímetro", 0)
         falha         = st.text_area("Falha apresentada")
         escopo        = st.text_area("Escopo do serviço")
-        imagem        = st.file_uploader("Imagem do componente (opcional)", type=["jpg", "png", "jpeg"])
+        imagem        = st.file_uploader("Imagem (opcional)", type=["jpg", "png", "jpeg"])
         os_retirada   = st.text_input("OS de Retirada")
         data_retirada = st.date_input("Data da Retirada", datetime.date.today())
         submit        = st.form_submit_button("Salvar")
@@ -83,12 +84,11 @@ if menu == "Técnico de Campo":
             id_registro = len(df)
             resumo = f"ID: {id_registro}\nDescrição: {descricao}\nPN: {pn}"
 
-    # Exibir resumo fora do form
     if resumo:
         st.markdown("### 📋 Resumo do Cadastro:")
         st.code(resumo)
         st.button("📋 Copiar resumo")
-        st.info("Copie o resumo acima com Ctrl+C para compartilhar.")
+        st.info("Copie manualmente com Ctrl+C para compartilhar.")
 
 # ==============================
 # SUPERVISOR
@@ -101,68 +101,65 @@ elif menu == "Supervisor":
     if user in st.secrets.supervisores and st.secrets.supervisores[user] == senha:
         st.success("Acesso liberado.")
 
-        st.markdown("### 🔍 Filtros de Pesquisa")
-        status_opcao = st.multiselect("Status", df["Status"].unique(), default=list(df["Status"].unique()))
-        tag_opcao    = st.multiselect("TAG do Equipamento", df["TAG"].unique(), default=list(df["TAG"].unique()))
-        data_min     = st.date_input("Data inicial", datetime.date(2024, 1, 1))
-        data_max     = st.date_input("Data final", datetime.date.today())
-
-        df_filtrado = df[
-            df["Status"].isin(status_opcao) &
-            df["TAG"].isin(tag_opcao) &
-            (pd.to_datetime(df["Data_Retirada"]) >= pd.to_datetime(data_min)) &
-            (pd.to_datetime(df["Data_Retirada"]) <= pd.to_datetime(data_max))
-        ]
-        st.markdown(f"### 📋 Resultados ({len(df_filtrado)} registros)")
-        st.dataframe(df_filtrado)
-
-        st.markdown("### 🖼️ Visualizar Imagens")
-        for i, row in df_filtrado.iterrows():
-            if pd.notna(row["Imagem"]) and os.path.exists(row["Imagem"]):
-                st.image(row["Imagem"], width=400, caption=f'{row["PN"]} - {row["Descrição"]}')
-                with open(row["Imagem"], "rb") as f:
-                    st.download_button(
-                        label="📥 Baixar Imagem",
-                        data=f,
-                        file_name=os.path.basename(row["Imagem"]),
-                        mime="image/jpeg"
-                    )
-                st.markdown("---")
-
         pendentes = df[df["Status"] == "Aguardando Envio"]
         if not pendentes.empty:
-            st.markdown("### ✏️ Atualizar componente pendente")
+            st.markdown("### ✏️ Selecionar processo pendente")
             idx = st.selectbox(
-                "Selecionar para atualizar",
+                "Selecionar para tratar",
                 pendentes.index,
                 format_func=lambda i: f"{df.at[i,'PN']} — {df.at[i,'TAG']} — {df.at[i,'Responsável']}"
             )
 
-            with st.form("form_supervisor"):
-                status       = st.selectbox("Novo Status", ["Enviado para Reforma", "Componente Entregue", "Cancelado"])
-                rs           = st.text_input("Nº da RS")
-                nota         = st.text_input("Nota Fiscal / Passe de saída")
-                data_envio   = st.date_input("Data de Envio", datetime.date.today())
-                data_entrega = None
-                motivo       = ""
-                if status == "Componente Entregue":
-                    data_entrega = st.date_input("Data de Entrega", datetime.date.today())
-                if status == "Cancelado":
-                    motivo = st.text_area("Motivo do Cancelamento")
-                submit_sup = st.form_submit_button("Salvar Atualização")
+            item = df.loc[idx]
+            st.markdown(f"**Descrição:** {item['Descrição']}  
+**PN:** {item['PN']}  
+**TAG:** {item['TAG']}  
+**Falha:** {item['Falha']}")
+            if pd.notna(item["Imagem"]) and os.path.exists(item["Imagem"]):
+                st.image(item["Imagem"], width=400, caption=f'{item["PN"]} - {item["Descrição"]}')
+                with open(item["Imagem"], "rb") as f:
+                    st.download_button(
+                        label="📥 Baixar Imagem",
+                        data=f,
+                        file_name=os.path.basename(item["Imagem"]),
+                        mime="image/jpeg"
+                    )
 
-                if submit_sup:
-                    df.at[idx, "Status"]              = status
-                    df.at[idx, "RS"]                  = rs
-                    df.at[idx, "Nota/Passe"]          = nota
-                    df.at[idx, "Data_Envio"]          = str(data_envio)
-                    df.at[idx, "Data_Entrega"]        = str(data_entrega) if data_entrega else ""
-                    df.at[idx, "Cancelado"]           = "Sim" if status == "Cancelado" else "Não"
-                    df.at[idx, "Motivo_Cancelamento"] = motivo
+            with st.form("form_supervisor"):
+                rs         = st.text_input("Nº da RS")
+                nota       = st.text_input("Nota Fiscal / Passe")
+                data_envio = st.date_input("Data de Envio", datetime.date.today())
+                submit_envio = st.form_submit_button("Confirmar envio")
+
+                if submit_envio:
+                    df.at[idx, "RS"] = rs
+                    df.at[idx, "Nota/Passe"] = nota
+                    df.at[idx, "Data_Envio"] = str(data_envio)
+                    df.at[idx, "Status"] = "Aguardando Retorno"
                     salvar_dados(df)
-                    st.success("✅ Atualização salva com sucesso.")
+                    st.success("✅ Processo enviado. Status atualizado para 'Aguardando Retorno'.")
+
         else:
-            st.info("Nenhum componente pendente para atualizar.")
+            st.info("Nenhum item pendente para envio.")
+
+        st.markdown("### 📦 Atualizar para 'Componente Entregue'")
+        retorno = df[df["Status"] == "Aguardando Retorno"]
+        if not retorno.empty:
+            idx2 = st.selectbox(
+                "Selecionar item para dar baixa",
+                retorno.index,
+                format_func=lambda i: f"{df.at[i,'PN']} — {df.at[i,'TAG']}"
+            )
+            with st.form("form_entrega"):
+                data_entrega = st.date_input("Data de Entrega", datetime.date.today())
+                submit_entrega = st.form_submit_button("Confirmar Entrega")
+                if submit_entrega:
+                    df.at[idx2, "Status"] = "Componente Entregue"
+                    df.at[idx2, "Data_Entrega"] = str(data_entrega)
+                    salvar_dados(df)
+                    st.success("✅ Item dado como entregue.")
+        else:
+            st.info("Nenhum item aguardando retorno.")
     else:
         st.warning("Usuário ou senha incorretos.")
 
@@ -175,16 +172,22 @@ elif menu == "Administrador":
     senha = st.text_input("Senha", type="password")
 
     if user in st.secrets.admin and st.secrets.admin[user] == senha:
-        st.success("Bem‑vindo, administrador.")
-        st.markdown("### 📋 Todos os registros")
-        st.dataframe(df)
+        st.success("Acesso completo concedido.")
+        st.markdown("### 📋 Relatórios por Status")
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🔄 Recarregar dados"):
-                df = pd.read_csv(CSV_PATH)
-                st.experimental_rerun()
-        with col2:
-            st.download_button("📥 Baixar CSV", df.to_csv(index=False), "registros.csv", "text/csv")
+        pend = df[df["Status"] == "Aguardando Envio"]
+        envio = df[df["Status"] == "Aguardando Retorno"]
+        entregue = df[df["Status"] == "Componente Entregue"]
+
+        st.markdown("#### 📍 Pendentes de Envio")
+        st.dataframe(pend)
+
+        st.markdown("#### 🚚 Enviados e Aguardando Retorno")
+        st.dataframe(envio)
+
+        st.markdown("#### ✅ Componentes Entregues")
+        st.dataframe(entregue)
+
+        st.download_button("📥 Baixar todos os dados (CSV)", df.to_csv(index=False), "componentes.csv", "text/csv")
     else:
         st.warning("Usuário ou senha incorretos.")
