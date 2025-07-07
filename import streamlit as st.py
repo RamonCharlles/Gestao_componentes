@@ -37,6 +37,7 @@ def salvar_dados(df):
 if menu == "Técnico de Campo":
     st.subheader("📥 Cadastro de Componente Retirado")
 
+    resumo = None  # usado fora do form
     with st.form("form_tecnico"):
         responsavel   = st.text_input("Responsável")
         matricula     = st.text_input("Matrícula")
@@ -82,11 +83,12 @@ if menu == "Técnico de Campo":
             id_registro = len(df)
             resumo = f"ID: {id_registro}\nDescrição: {descricao}\nPN: {pn}"
 
-            st.markdown("### 📋 Resumo do Cadastro:")
-            st.code(resumo)
-
-            if st.button("📋 Copiar resumo"):
-                st.toast("Copie manualmente o texto acima (área de transferência automática depende do navegador).")
+    # Exibir resumo fora do form
+    if resumo:
+        st.markdown("### 📋 Resumo do Cadastro:")
+        st.code(resumo)
+        st.button("📋 Copiar resumo")
+        st.info("Copie o resumo acima com Ctrl+C para compartilhar.")
 
 # ==============================
 # SUPERVISOR
@@ -186,4 +188,3 @@ elif menu == "Administrador":
             st.download_button("📥 Baixar CSV", df.to_csv(index=False), "registros.csv", "text/csv")
     else:
         st.warning("Usuário ou senha incorretos.")
-
