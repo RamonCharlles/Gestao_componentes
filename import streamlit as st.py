@@ -9,7 +9,7 @@ os.makedirs("images/uploads", exist_ok=True)
 
 CSV_PATH = "data/registros.csv"
 
-# Criar arquivo CSV vazio se não existir
+# Criar CSV se não existir
 if not os.path.exists(CSV_PATH):
     df = pd.DataFrame(columns=[
         "Responsável", "Matrícula", "PN", "Descrição", "TAG",
@@ -30,6 +30,7 @@ st.title("🛠 Gestão de Componentes Reformáveis")
 
 menu = st.sidebar.radio("Perfil", ["Técnico de Campo", "Supervisor", "Administrador"])
 
+# === TÉCNICO DE CAMPO ===
 if menu == "Técnico de Campo":
     st.subheader("📥 Cadastro de Componente Retirado")
 
@@ -44,7 +45,7 @@ if menu == "Técnico de Campo":
         falha         = st.text_area("Falha apresentada")
         escopo        = st.text_area("Escopo do serviço detalhado")
         imagem        = st.file_uploader("Imagem (opcional)", type=["jpg", "png", "jpeg"])
-        os_retirada   = st.text_input("Nª da OS de Retirada")
+        os_retirada   = st.text_input("Nº da OS de Retirada")
         data_retirada = st.date_input("Data da Retirada", datetime.date.today())
         submit        = st.form_submit_button("Salvar")
 
@@ -84,6 +85,7 @@ if menu == "Técnico de Campo":
         st.code(resumo)
         st.info("Copie manualmente para compartilhar.")
 
+# === SUPERVISOR ===
 elif menu == "Supervisor":
     st.subheader("🔐 Acesso do Supervisor")
     user  = st.text_input("Usuário")
@@ -102,11 +104,11 @@ elif menu == "Supervisor":
             )
 
             item = df.loc[idx]
-            st.markdown(f"""**Descrição:** {item['Descrição']}  \\
-**PN:** {item['PN']}  \\
-**TAG:** {item['TAG do equipamento']}  \\
-**Falha:** {item['Falha']}  \\
-**OS de Retirada:** {item['Nª da OS_Retirada']}  \\
+            st.markdown(f"""**Descrição:** {item['Descrição']}  
+**PN:** {item['PN']}  
+**TAG:** {item['TAG']}  
+**Falha:** {item['Falha']}  
+**OS de Retirada:** {item['OS_Retirada']}  
 **Escopo do Serviço:** {item['Escopo']}""")
 
             if pd.notna(item["Imagem"]) and os.path.exists(item["Imagem"]):
@@ -122,7 +124,7 @@ elif menu == "Supervisor":
             with st.form("form_supervisor"):
                 rs         = st.text_input("Nº da RS")
                 nota       = st.text_input("Nota Fiscal / Passe")
-                data_envio = st.date_input("Data de Envio para o almoxarifado", datetime.date.today())
+                data_envio = st.date_input("Data de Envio para o Almoxarifado", datetime.date.today())
                 submit_envio = st.form_submit_button("Confirmar envio")
 
                 if submit_envio:
@@ -179,6 +181,7 @@ elif menu == "Supervisor":
     else:
         st.warning("Usuário ou senha incorretos.")
 
+# === ADMINISTRADOR ===
 elif menu == "Administrador":
     st.subheader("🔐 Acesso do Administrador")
     user  = st.text_input("Usuário")
@@ -204,3 +207,4 @@ elif menu == "Administrador":
         st.download_button("📥 Baixar todos os dados (CSV)", df.to_csv(index=False), "componentes.csv", "text/csv")
     else:
         st.warning("Usuário ou senha incorretos.")
+
