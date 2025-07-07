@@ -3,13 +3,11 @@ import pandas as pd
 import datetime
 import os
 
-# Diretórios para dados e imagens
 os.makedirs("data", exist_ok=True)
 os.makedirs("images/uploads", exist_ok=True)
 
 CSV_PATH = "data/registros.csv"
 
-# Criar CSV se não existir
 if not os.path.exists(CSV_PATH):
     df = pd.DataFrame(columns=[
         "Responsável", "Matrícula", "PN", "Descrição", "TAG",
@@ -133,10 +131,10 @@ elif menu == "Supervisor":
                         mime="image/jpeg"
                     )
 
-            with st.form("form_supervisor"):
+            with st.form("form_supervisor_envio"):
                 rs         = st.text_input("Nº da RS")
                 nota       = st.text_input("Nota Fiscal / Passe")
-                data_envio = st.date_input("Data de Envio para o Almoxarifado", datetime.date.today())
+                data_envio = st.date_input("Data de Envio", datetime.date.today())
                 submit_envio = st.form_submit_button("Confirmar envio")
 
                 if submit_envio:
@@ -145,9 +143,25 @@ elif menu == "Supervisor":
                     df.at[idx, "Data_Envio"] = str(data_envio)
                     df.at[idx, "Status"] = "Aguardando Retorno"
                     salvar_dados(df)
-                    st.success("✅ Processo enviado. Status atualizado para 'Aguardando Retorno'.")
+                    st.success("✅ Enviado com sucesso. Status atualizado.")
+
+            st.markdown("### ❌ Recusar processo")
+            with st.form("form_supervisor_recusa"):
+                motivo = st.text_area("Informe o motivo da recusa", max_chars=300)
+                recusar = st.form_submit_button("Recusar componente")
+
+                if recusar:
+                    if motivo.strip() == "":
+                        st.error("⚠️ É obrigatório informar o motivo da recusa.")
+                    else:
+                        df.at[idx, "Status"] = "Cancelado"
+                        df.at[idx, "Cancelado"] = "Sim"
+                        df.at[idx, "Motivo_Cancelamento"] = motivo.strip()
+                        salvar_dados(df)
+                        st.success("❌ Cadastro recusado com sucesso.")
+
         else:
-            st.info("Nenhum item pendente para envio.")
+            st.info("Nenhum item pendente para envio ou recusa.")
 
         st.markdown("### 📦 Atualizar para 'Componente Entregue'")
         retorno = df[df["Status"] == "Aguardando Retorno"]
@@ -158,7 +172,7 @@ elif menu == "Supervisor":
                 format_func=lambda i: f"{df.at[i,'PN']} — {df.at[i,'TAG']}"
             )
             with st.form("form_entrega"):
-                data_entrega = st.date_input("Data de Recebimento (Obrigatório)")
+                data_entrega = st.date_input("Data de Recebimento")
                 submit_entrega = st.form_submit_button("Confirmar Entrega")
 
                 if submit_entrega:
@@ -169,16 +183,6 @@ elif menu == "Supervisor":
         else:
             st.info("Nenhum item aguardando retorno.")
 
-        st.markdown("### 🗂 Itens entregues ou cancelados")
-        tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
-        if not tratados.empty:
-            st.dataframe(tratados.reset_index(drop=True))
-        else:
-            st.info("Nenhum item entregue ou cancelado.")
-
-    else:
-        st.warning("Usuário ou senha incorretos.")
-
 # === ADMINISTRADOR ===
 elif menu == "Administrador":
     st.subheader("🔐 Acesso do Administrador")
@@ -187,8 +191,6 @@ elif menu == "Administrador":
 
     if user in st.secrets.admin and st.secrets.admin[user] == senha:
         st.success("Acesso completo concedido.")
-
-        # Calcular tempo de processo
         df["Tempo_Processo"] = df.apply(calcular_tempo_processo, axis=1)
 
         pend = df[df["Status"] == "Aguardando Envio"]
@@ -201,10 +203,10 @@ elif menu == "Administrador":
         st.markdown("#### 🚚 Aguardando Retorno")
         st.dataframe(envio[["PN", "TAG", "Status", "Data_Retirada", "Tempo_Processo"]])
 
-        st.markdown("#### ✅ Componentes Entregues")
+        st.markdown("#### ✅ Entregues")
         st.dataframe(entregue[["PN", "TAG", "Status", "Data_Retirada", "Data_Entrega", "Tempo_Processo"]])
 
-        st.markdown("### 🗑️ Itens entregues ou cancelados (pode excluir)")
+        st.markdown("### 🗑️ Itens entregues ou cancelados")
         tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
         if not tratados.empty:
             st.dataframe(tratados.reset_index(drop=True))
@@ -223,7 +225,6 @@ elif menu == "Administrador":
             st.info("Nenhum item disponível para exclusão.")
 
         st.download_button("📥 Baixar todos os dados (CSV)", df.to_csv(index=False), "componentes.csv", "text/csv")
-
     else:
         st.warning("Usuário ou senha incorretos.")
 
