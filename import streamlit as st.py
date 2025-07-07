@@ -191,3 +191,4 @@ elif menu == "Administrador":
         st.download_button("📥 Baixar todos os dados (CSV)", df.to_csv(index=False), "componentes.csv", "text/csv")
     else:
         st.warning("Usuário ou senha incorretos.")
+
