@@ -25,6 +25,18 @@ else:
 def salvar_dados(df):
     df.to_csv(CSV_PATH, index=False)
 
+def calcular_tempo_processo(row):
+    try:
+        data_inicio = pd.to_datetime(row["Data_Retirada"])
+        if pd.notna(row["Data_Entrega"]) and row["Data_Entrega"] != "":
+            data_fim = pd.to_datetime(row["Data_Entrega"])
+        else:
+            data_fim = pd.to_datetime(datetime.date.today())
+        duracao = data_fim - data_inicio
+        return f"{duracao.days} dias"
+    except:
+        return "—"
+
 st.set_page_config("Gestão de Componentes Reformáveis", layout="wide")
 st.title("🛠 Gestão de Componentes Reformáveis")
 
@@ -175,20 +187,22 @@ elif menu == "Administrador":
 
     if user in st.secrets.admin and st.secrets.admin[user] == senha:
         st.success("Acesso completo concedido.")
-        st.markdown("### 📋 Relatórios por Status")
+
+        # Calcular tempo de processo
+        df["Tempo_Processo"] = df.apply(calcular_tempo_processo, axis=1)
 
         pend = df[df["Status"] == "Aguardando Envio"]
         envio = df[df["Status"] == "Aguardando Retorno"]
         entregue = df[df["Status"] == "Componente Entregue"]
 
         st.markdown("#### 📍 Pendentes de Envio")
-        st.dataframe(pend)
+        st.dataframe(pend[["PN", "TAG", "Status", "Data_Retirada", "Tempo_Processo"]])
 
-        st.markdown("#### 🚚 Enviados e Aguardando Retorno")
-        st.dataframe(envio)
+        st.markdown("#### 🚚 Aguardando Retorno")
+        st.dataframe(envio[["PN", "TAG", "Status", "Data_Retirada", "Tempo_Processo"]])
 
         st.markdown("#### ✅ Componentes Entregues")
-        st.dataframe(entregue)
+        st.dataframe(entregue[["PN", "TAG", "Status", "Data_Retirada", "Data_Entrega", "Tempo_Processo"]])
 
         st.markdown("### 🗑️ Itens entregues ou cancelados (pode excluir)")
         tratados = df[(df["Status"] == "Componente Entregue") | (df["Cancelado"] == "Sim")]
@@ -212,3 +226,4 @@ elif menu == "Administrador":
 
     else:
         st.warning("Usuário ou senha incorretos.")
+
